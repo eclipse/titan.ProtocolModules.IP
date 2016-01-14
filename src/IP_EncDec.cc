@@ -15,7 +15,7 @@
 ******************************************************************************/
 //
 //  File:               IP_EncDec.cc
-//  Rev:                R9A
+//  Rev:                R10B
 //  Prodnr:             CNL 113 418
 //
 #include <sys/socket.h>
@@ -109,6 +109,9 @@ Decode_MINE_header(TTCN_Buffer & bb, IP__MINE__header & field)
   Log_function_name_on_enter();
 
   field.decode(IP__MINE__header_descr_, bb, TTCN_EncDec::CT_RAW);
+  if (TTCN_EncDec::get_last_error_type() != TTCN_EncDec::ET_NONE) {
+    TTCN_error("There was an error during the MINE eader decode. %s", TTCN_EncDec::get_error_str());
+  }
   return field.protocol();
 }
 
@@ -119,6 +122,9 @@ Decode_AH_header(TTCN_Buffer & bb, IP__AH__header & field)
   Log_function_name_on_enter();
 
   field.decode(IP__AH__header_descr_, bb, TTCN_EncDec::CT_RAW);
+  if (TTCN_EncDec::get_last_error_type() != TTCN_EncDec::ET_NONE) {
+    TTCN_error("There was an error during the AH eader decode. %s", TTCN_EncDec::get_error_str());
+  }
   return field.next__hdr();
 }
 
@@ -155,10 +161,17 @@ Decode_ESP_header(TTCN_Buffer & bb, IP__ESP__header & field)
   Log_function_name_on_enter();
 
   field.header().decode(IP__ESP__header__part_descr_, bb, TTCN_EncDec::CT_RAW);
+  if (TTCN_EncDec::get_last_error_type() != TTCN_EncDec::ET_NONE) {
+    TTCN_error("There was an error during the ESP eader decode. %s", TTCN_EncDec::get_error_str());
+  }
+  
 
   // Decode ESP tail and invalidate buffer tail
   ptr = bb.get_read_data();
   pad_length = ptr[bb.get_read_len() - 1 - 13];
+  if(pad_length < 0) {
+    TTCN_error("The padding length can not be negative number. Actual value: %zu", pad_length);
+  }
   field.tail().esp__null__tail().pad__length() = INTEGER(pad_length);
   field.tail().esp__null__tail().next__hdr() = 
     INTEGER(ptr[bb.get_read_len() - 1 - 12]);
@@ -338,33 +351,52 @@ Decode_IPv4_extension_headers(TTCN_Buffer & bb,
     field = OMIT_VALUE;
 }
 
-IPv4__packet
-f__IPv4__dec(OCTETSTRING const &data)
+INTEGER
+f__IPv4__dec__backtrack(OCTETSTRING const &data, IPv4__packet& pdu, const BOOLEAN& strict__length__check)
 {
   const unsigned char *raw_data = (const unsigned char *) data;
-  IPv4__packet pdu;
+  unsigned int payload_length;
   TTCN_Buffer bb;
 
   Log_function_name_on_enter();
 
   bb.clear();
   bb.put_s(data.lengthof(), raw_data);
-
+  TTCN_EncDec::clear_error();
   pdu.header().decode(IPv4__header_descr_, bb, TTCN_EncDec::CT_RAW);
+  if (TTCN_EncDec::get_last_error_type() != TTCN_EncDec::ET_NONE) {
+    TTCN_warning("There was an error during the header decode. %s", TTCN_EncDec::get_error_str());
+    return 0;   
+  }
+  
+  payload_length = pdu.header().tlen() - 4 * pdu.header().hlen();
+  if(strict__length__check  && (payload_length != bb.get_read_len())) {
+    TTCN_logger.log(TTCN_WARNING, "Length of the payload (%zu) does not match with the value in the 'Payload length' (%d) field.", bb.get_read_len(), payload_length);
+    return 0;
+  }
   Decode_IPv4_extension_headers(bb, pdu.ext__headers(), pdu.header().proto());
-  int payload_length = pdu.header().tlen() - 4 * pdu.header().hlen();
+  
   if (payload_length == 0)
     pdu.payload() = OMIT_VALUE;
   else{
-    int rem_data_length=bb.get_read_len();
+    unsigned int rem_data_length=bb.get_read_len();
     pdu.payload()() = OCTETSTRING(payload_length>rem_data_length?rem_data_length:payload_length, bb.get_read_data());
     
   }
 
   Log_object(pdu);
-  return pdu;
+  return 1;
 }
 
+IPv4__packet
+f__IPv4__dec(OCTETSTRING const &data){
+  IPv4__packet tmp;
+  int decode_res;
+  decode_res = f__IPv4__dec__backtrack(data, tmp, true);
+  if(!decode_res)
+    TTCN_error("Decoding the given octetstring has failed");
+  return tmp;
+}
 General__Types::OCT2
 f__IPv4__checksum(OCTETSTRING const &data)
 {
@@ -425,8 +457,8 @@ Encode_IPv6_payload_length(TTCN_Buffer & bb)
                "payload length. Length is %u.", len);
   }
   payload_len = bb.get_len() - 40;
-  ptr[4] = payload_len / 256;
-  ptr[5] = payload_len - (payload_len / 256) * 256;
+  ptr[4] = (payload_len>>8) & 0xFF;
+  ptr[5] = payload_len & 0xFF;
   
   Log_function_name_on_leave();
 }
@@ -546,6 +578,10 @@ Decode_Frag_header(TTCN_Buffer & bb, IPv6__Fragment__header & field)
   Log_function_name_on_enter();
 
   field.decode(IPv6__Fragment__header_descr_, bb, TTCN_EncDec::CT_RAW);
+  if (TTCN_EncDec::get_last_error_type() != TTCN_EncDec::ET_NONE) {
+    TTCN_error("There was an error during the fragment header decode. %s", TTCN_EncDec::get_error_str());   
+  }
+  
   return field.next__hdr();
 }
 
@@ -625,30 +661,50 @@ Decode_IPv6_extension_headers(TTCN_Buffer & bb,
   // No extension headers found
   if (level == 0)
     field = OMIT_VALUE;
-}
+}  
 
-IPv6__packet
-f__IPv6__dec(const OCTETSTRING &data)
+INTEGER
+f__IPv6__dec__backtrack(const OCTETSTRING &data, IPv6__packet& pdu, const BOOLEAN& strict__length__check)
 {
   const unsigned char *raw_data = (const unsigned char *) data;
-  IPv6__packet pdu;
   TTCN_Buffer bb;
 
   Log_function_name_on_enter();
 
   bb.clear();
   bb.put_s(data.lengthof(), raw_data);
-
   pdu.header().decode(IPv6__header_descr_, bb, TTCN_EncDec::CT_RAW);
+  if (TTCN_EncDec::get_last_error_type() != TTCN_EncDec::ET_NONE) {
+    TTCN_warning("There was an error during the header decode. %s", TTCN_EncDec::get_error_str());
+    return 0;
+  }
+  
+  if (strict__length__check  && ((int)pdu.header().plen() != (int)bb.get_read_len())) { 
+    TTCN_logger.log(TTCN_WARNING, "Length of the payload (%zu) does not match with the value in the 'Payload length' (%d) field.", bb.get_read_len(), (int)pdu.header().plen());
+    return 0;
+  }
+ 
   Decode_IPv6_extension_headers(bb, pdu.ext__headers(), 
                                 pdu.header().nexthead());
+  
+
+  
   if (bb.get_read_len() == 0)
     pdu.payload() = OMIT_VALUE;
   else
     pdu.payload()() = OCTETSTRING(bb.get_read_len(), bb.get_read_data());
 
   Log_object(pdu);
-  return pdu;
+  return 1;
+}
+
+IPv6__packet f__IPv6__dec(const OCTETSTRING& data) {
+  IPv6__packet tmp;
+  int decode_res;
+  decode_res = f__IPv6__dec__backtrack(data, tmp, true);
+  if(!decode_res)
+    TTCN_error("Decoding the given octetstring has failed");
+  return tmp;
 }
 
 CHARSTRING

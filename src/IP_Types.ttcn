@@ -16,12 +16,22 @@
 //
 //  File:               IP_Types.ttcn
 //  Description:        IP
-//  Rev:                R9A
+//  Rev:                R10B
 //  Prodnr:             CNL 113 418
 //
 module IP_Types {
 
 import from General_Types all;
+
+
+// Controls the default behaviour of the backtrack decoders
+// If the parameter is true, the length of the payload part and the 
+// payload length in the IP header are compared and the decoding will
+// fail if they are not equal.
+// If the parameter is false the length check if not enforced. Useful
+// for cheking truncated IP datagrams.
+// The length check can be controlled via the parameter of the decoder functions also
+modulepar boolean tsp_use_strict_length_check := true
 
 // ================= Common data part =================
 
@@ -136,6 +146,7 @@ type record IP_GRE2_header {
 external function f_IPv4_enc(in IPv4_packet pdu) return octetstring;
 external function f_IPv4_enc_eth(in IPv4_packet pdu) return octetstring;
 external function f_IPv4_dec(in octetstring data) return IPv4_packet;
+external function f_IPv4_dec_backtrack(in octetstring data, out IPv4_packet res, in boolean strict_length_check:=tsp_use_strict_length_check) return integer;
 external function f_IPv4_checksum(in octetstring data) return OCT2;
 external function f_IPv4_addr_enc(in IPV4ADDR cs_addr) return octetstring;
 external function f_IPv4_addr_dec(in octetstring os_addr) return IPV4ADDR;
@@ -194,6 +205,7 @@ type port IPv4_ASP_SP_PT message {
 
 external function f_IPv6_enc(in IPv6_packet pdu) return octetstring;
 external function f_IPv6_dec(in octetstring data) return IPv6_packet;
+external function f_IPv6_dec_backtrack(in octetstring data, out IPv6_packet res, in boolean strict_length_check:=tsp_use_strict_length_check) return integer;
 external function f_IPv6_addr_enc(in charstring cs_addr) return octetstring;
 external function f_IPv6_addr_dec(in octetstring os_addr) return charstring;
 
