@@ -15,7 +15,7 @@
 ******************************************************************************/
 //
 //  File:               IP_EncDec.cc
-//  Rev:                R10B
+//  Rev:                R10C
 //  Prodnr:             CNL 113 418
 //
 #include <sys/socket.h>
@@ -110,7 +110,7 @@ Decode_MINE_header(TTCN_Buffer & bb, IP__MINE__header & field)
 
   field.decode(IP__MINE__header_descr_, bb, TTCN_EncDec::CT_RAW);
   if (TTCN_EncDec::get_last_error_type() != TTCN_EncDec::ET_NONE) {
-    TTCN_error("There was an error during the MINE eader decode. %s", TTCN_EncDec::get_error_str());
+    TTCN_error("There was an error during the MINE header decode. %s", TTCN_EncDec::get_error_str());
   }
   return field.protocol();
 }
@@ -647,7 +647,6 @@ Decode_IPv6_extension_headers(TTCN_Buffer & bb,
   while( next_proto == c__ip__proto__ipv6__hopopt ||   //0    Hop-by-hop -> decoded into IPv6_general_IPv6_extension_header
          next_proto == c__ip__proto__ipv6__dest ||     //60   Destination -> decoded into IPv6_general_IPv6_extension_header
          next_proto == c__ip__proto__ipv6__route ||    //43   Routing  -> decoded into IPv6_general_IPv6_extension_header
-         next_proto == c__ip__proto__ipv6__frag ||     //44   Fragment -> decoded into IPv6_Fragment_header
          next_proto == c__ip__proto__ah ||             //51   Authentication  -> decoded into IP_AH_header
          next_proto == c__ip__proto__esp ||            //50   Encapsulation security -> decoded into IP_ESP_header
          next_proto == c__ip__proto__mobility ||       //135  Mobility (Including PMIP) -> decoded into IPv6_general_IPv6_extension_header
@@ -655,6 +654,11 @@ Decode_IPv6_extension_headers(TTCN_Buffer & bb,
   )      
   {
     next_proto = Decode_IPv6_extension_header(bb, field()[level], next_proto);
+    level++;
+  }
+  // Only the payload can be after a Fragment Header
+  if(next_proto == c__ip__proto__ipv6__frag){ //44   Fragment -> decoded into IPv6_Fragment_header
+    Decode_IPv6_extension_header(bb, field()[level], next_proto);
     level++;
   }
 
