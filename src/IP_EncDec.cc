@@ -15,7 +15,7 @@
 ******************************************************************************/
 //
 //  File:               IP_EncDec.cc
-//  Rev:                R10C
+//  Rev:                R10D
 //  Prodnr:             CNL 113 418
 //
 #include <sys/socket.h>
@@ -374,7 +374,14 @@ f__IPv4__dec__backtrack(OCTETSTRING const &data, IPv4__packet& pdu, const BOOLEA
     TTCN_logger.log(TTCN_WARNING, "Length of the payload (%zu) does not match with the value in the 'Payload length' (%d) field.", bb.get_read_len(), payload_length);
     return 0;
   }
-  Decode_IPv4_extension_headers(bb, pdu.ext__headers(), pdu.header().proto());
+
+  int mfrag = ((const unsigned char *) pdu.header().mfrag())[0] & 0x01;
+  if ((pdu.header().foffset() == 0) && (! mfrag)){
+    Decode_IPv4_extension_headers(bb, pdu.ext__headers(), pdu.header().proto());
+  }
+  else{
+    pdu.ext__headers() = OMIT_VALUE;
+  }
   
   if (payload_length == 0)
     pdu.payload() = OMIT_VALUE;
