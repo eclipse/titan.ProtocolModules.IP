@@ -1,22 +1,14 @@
----
-Author: Gábor Szalai
-Version: 1551-CNL 113 418, Rev. C
-Date: 2015-07-30
-
----
 = IP Protocol Modules for TTCN-3 Toolset with TITAN, Description
 :author: Gábor Szalai
-:revnumber: 1551-CNL 113 418, Rev. C
-:revdate: 2015-07-30
-:toc:
+:toc: left
 
-= General
+== General
 
 Protocol modules implement the message structures of the related protocol in a formalized way, using the standard specification language TTCN-3. This allows defining of test data (templates) in the TTCN-3 language <<_3, ‎[3]>> and correctly encoding/decoding messages when executing test suites using the TITAN TTCN-3 test environment.
 
 Protocol modules are using TITAN’s RAW encoding attributes ‎<<_4, [4]>> and hence are usable with the TITAN test toolset only.
 
-== System Requirements
+=== System Requirements
 
 Protocol modules are a set of TTCN-3 source code files that can be used as part of TTCN-3 test suites only. Hence, protocol modules alone do not put specific requirements on the system used. However in order to compile and execute a TTCN-3 test suite using the set of protocol modules the following system requirements must be satisfied:
 
@@ -24,9 +16,9 @@ Protocol modules are a set of TTCN-3 source code files that can be used as part 
 
 NOTE: This version of the test port is not compatible with TITAN releases earlier than R7A.
 
-= Functionality
+== Functionality
 
-== Protocol Version Implemented
+=== Protocol Version Implemented
 
 This set of protocol modules implements protocol messages and constants of the IP protocol, version 4 (see <<_1, ‎[1]>>) and version 6 (see <<_2, ‎[2]>>) with the modifications specified in <<modifications-deviations-related-to-the-protocol-specification, Modifications/Deviations Related to the Protocol Specification>>.
 
@@ -39,12 +31,12 @@ The following IPv4 extension headers are supported:
 * generic routing encapsulation (*_GRE_* and *_GRE2_*), see <<_8, ‎[8]>> and <<_9, ‎[9]>>
 
 [[modifications-deviations-related-to-the-protocol-specification]]
-== Modifications/Deviations Related to the Protocol Specification
+=== Modifications/Deviations Related to the Protocol Specification
 
 The IPv4 options at the end of the header are not supported.
 
 [[encoding-decoding-and-other-related-functions]]
-== Encoding/Decoding and Other Related Functions
+=== Encoding/Decoding and Other Related Functions
 
 This product also contains encoding/decoding functions, which assure correct encoding of messages when sent from TITAN and correct decoding of messages when received by TITAN.
 
@@ -132,17 +124,17 @@ The functions return an empty string if the conversion of the address is not pos
 |returns charstring
 |===
 
-= Usage
+== Usage
 
-== Installation
+=== Installation
 
 The set of protocol modules can be used in developing TTCN-3 test suites using any text editor. However to make the work more efficient a TTCN-3-enabled text editor is recommended (e.g. nedit, xemacs). Since the IP protocol is used as a part of a TTCN-3 test suite, this requires TTCN-3 Test Executor be installed before the module can be compiled and executed together with other parts of the test suite. For more details on the installation of TTCN-3 Test Executor see the relevant section of <<_4, [4]>>.
 
-== Configuration
+=== Configuration
 
 None.
 
-== Implementation Specifics
+=== Implementation Specifics
 
 The `f_IPv4_checksum()` can be used to calculate the value of the IPv4 checksum field. The parameter of the function is the encoded IP packet. The checksum is calculated over the *_IP_* header and the `_return_` value is the value of the IP checksum field. The length of the checksum field is always 2 octets.
 
@@ -156,9 +148,9 @@ The `IPv4_ASP` ASP is a very basic ASP, containing:
 
 Function `f_IPv4_enc_eth` puts padding zeros to the end of the encoded IP message if shorter than 46 bytes, it assures the minimal length of payload in case of Ethernet frame is used as lower layer.
 
-== Examples
+=== Examples
 
-=== IPv4 Packet Encoding and Decoding
+==== IPv4 Packet Encoding and Decoding
 
 The following example shows how an IPv4 packet can be encoded and decoded:
 
@@ -180,7 +172,7 @@ var OCT2 cksum := f_IPv4_checksum(data);
 v_ipv4_packet := f_IPv4_dec(data);
 ----
 
-=== IPv4 Packet Encoding for Ethernet Support
+==== IPv4 Packet Encoding for Ethernet Support
 
 The following example shows how an IPv4 packet can be encoded to ensure the minimal payload length for Ethernet:
 
@@ -196,7 +188,7 @@ data[10] := cksum[0];
 data[11] := cksum[1];
 ----
 
-=== IPv6 Packet Encoding and Decoding
+==== IPv6 Packet Encoding and Decoding
 
 The following example shows how an IPv4 packet can be encoded and decoded:
 
@@ -210,7 +202,7 @@ data:= f_IPv6_enc(v_ipv6_packet);
 v_ipv6_packet := f_IPv6_dec(data);
 ----
 
-=== IPv4 Address Encoding and Decoding
+==== IPv4 Address Encoding and Decoding
 
 The following example shows how the IPv4 address fields can be filled up:
 
@@ -224,7 +216,7 @@ v_ipv4_packet.header.srcaddr := f_IPv4_addr_enc(v_address);
 v_address := f_IPv4_addr_dec(v_ipv4_packet.header.srcaddr);
 ----
 
-=== IPv6 Address Encoding and Decoding
+==== IPv6 Address Encoding and Decoding
 
 The following example shows how the IPv6 address fields can be filled up:
 
@@ -238,11 +230,11 @@ v_ipv6_packet.header.srcaddr := f_IPv6_addr_enc(v_address);
 v_address := f_IPv6_addr_dec(v_ipv6_packet.header.srcaddr);
 ----
 
-= Terminology
+== Terminology
 
 No specific terminology is used.
 
-= Abbreviations
+== Abbreviations
 
 IP:: Internet Protocol
 
@@ -254,7 +246,7 @@ RFC:: Request For Comments
 
 TTCN-3:: Testing and Test Control Notation version 3
 
-= References
+== References
 
 [[_1]]
 [1] https://tools.ietf.org/html/rfc791[RFC 791] +

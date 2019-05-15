@@ -16,8 +16,6 @@
 //
 //  File:               IP_Types.ttcn
 //  Description:        IP
-//  Rev:                R10D
-//  Prodnr:             CNL 113 418
 //
 module IP_Types {
 

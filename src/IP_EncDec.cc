@@ -15,8 +15,6 @@
 ******************************************************************************/
 //
 //  File:               IP_EncDec.cc
-//  Rev:                R10D
-//  Prodnr:             CNL 113 418
 //
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -684,6 +682,8 @@ f__IPv6__dec__backtrack(const OCTETSTRING &data, IPv6__packet& pdu, const BOOLEA
 
   bb.clear();
   bb.put_s(data.lengthof(), raw_data);
+  TTCN_EncDec::clear_error();
+
   pdu.header().decode(IPv6__header_descr_, bb, TTCN_EncDec::CT_RAW);
   if (TTCN_EncDec::get_last_error_type() != TTCN_EncDec::ET_NONE) {
     TTCN_warning("There was an error during the header decode. %s", TTCN_EncDec::get_error_str());
